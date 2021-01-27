@@ -9,7 +9,7 @@ import settings
 import simplejson as json
 
 
-class RelateObject(object):
+class RelateObject:
     API_PROTO = 'https'
     API_PORT = '443'
     API_HOST = 'api.relateiq.com'
@@ -23,8 +23,10 @@ class RelateObject(object):
         404: "Not Found - requested object does not exist",
         422: "Unprocessable Entity - often the posted object is malformatted",
         429: "Too Many Requests - exceeded rate limits",
-        500: "Internal Server Error - an unexpected error on the RelateIQ side",
-        503: "Service Unavailable - likely a deploy is occuring, wait 2 minutes and retry"
+        500: "Internal Server Error - an unexpected error "
+             "on the RelateIQ side",
+        503: "Service Unavailable - likely a deploy is occuring, "
+             "wait 2 minutes and retry"
     }
 
     HTTP_POST = 'post'
@@ -35,7 +37,8 @@ class RelateObject(object):
 
     DEBUG = False
 
-    def __init__(self, api_key=None, api_secret=None, list_id=None, debug=True):
+    def __init__(self, api_key=None, api_secret=None, list_id=None,
+                 debug=True):
         self.API_KEY = api_key or settings.RELATE_API_KEY
         self.API_SECRET = api_secret or settings.RELATE_API_SECRET
 
@@ -71,7 +74,8 @@ class RelateObject(object):
                 break
 
             if transform:
-                results += [cls.from_dict(item) for item in response['objects']]
+                results += [cls.from_dict(item) for item in
+                            response['objects']]
             else:
                 results += response['objects']
 
@@ -111,8 +115,8 @@ class RelateObject(object):
         path = self._build_request_path(endpoint)
 
         if self.DEBUG:
-            print '%s\n' % path
-            print 'data:\n%s\n' % data
+            print('%s\n' % path)
+            print('data:\n%s\n' % data)
 
         headers = {
             'Content-Type': 'application/json',
@@ -122,11 +126,13 @@ class RelateObject(object):
         r = None
         auth = requests.auth.HTTPBasicAuth(self.API_KEY, self.API_SECRET)
 
-        if (http_method == self.HTTP_POST):
-            r = requests.post(path, data=json.dumps(data), auth=auth, headers=headers)
-        elif (http_method == self.HTTP_PUT):
-            r = requests.put(path, data=json.dumps(data), auth=auth, headers=headers)
-        elif (http_method == self.HTTP_GET):
+        if http_method == self.HTTP_POST:
+            r = requests.post(path, data=json.dumps(data), auth=auth,
+                              headers=headers)
+        elif http_method == self.HTTP_PUT:
+            r = requests.put(path, data=json.dumps(data), auth=auth,
+                             headers=headers)
+        elif http_method == self.HTTP_GET:
             r = requests.get(path, params=data, auth=auth, headers=headers)
 
         if r.status_code not in [200, 204]:
@@ -152,7 +158,7 @@ class RelateObject(object):
                 
                 Response Body
                 %s""" % (r.status_code, path, http_method, msg, extra,
-                            r.text))
+                         r.text))
 
         return r.json()
 
@@ -207,7 +213,7 @@ class RelateContact(RelateObject):
             data = self.put(endpoint, self.to_dict())
             self.update_from_dict(data)
         else:
-            #create
+            # create
             endpoint = self.ENDPOINT
             data = self.post(endpoint, self.to_dict())
             self.update_from_dict(data)
@@ -265,7 +271,7 @@ class RelateUser(RelateObject):
             data = self.put(endpoint, self.to_dict())
             self.update_from_dict(data)
         else:
-            #create
+            # create
             endpoint = self.ENDPOINT
             data = self.post(endpoint, self.to_dict())
             self.update_from_dict(data)
@@ -300,7 +306,7 @@ class RelateAccount(RelateObject):
             data = self.put(endpoint, self.to_dict())
             self.update_from_dict(data)
         else:
-            #create
+            # create
             endpoint = self.ENDPOINT
             data = self.post(endpoint, self.to_dict())
             self.update_from_dict(data)
@@ -358,7 +364,8 @@ class RelateList(RelateObject):
             if len(response['objects']) == 0:
                 break
 
-            self.items += [RelateListItem(self, item) for item in response['objects']]
+            self.items += [RelateListItem(self, item) for item in
+                           response['objects']]
 
             start += limit
 
@@ -399,6 +406,7 @@ class RelateList(RelateObject):
 
         return matches
 
+
 class RelateListItem(RelateObject):
     ENDPOINT = RelateList.ENDPOINT + '/%s/listitems/%s'
 
@@ -421,14 +429,15 @@ class RelateListItem(RelateObject):
 
         self.list_id = r_list.id
         self.fields_dict = r_list.fields_dict
-        self.fields_dict_reversed = {v['name']: k for k, v in r_list.fields_dict.items()}
+        self.fields_dict_reversed = {v['name']: k for k, v in
+                                     r_list.fields_dict.items()}
         self.fields_data = r_list.fields
 
         if data:
             self.update_from_dict(data)
 
     @classmethod
-    def get_by_id(cls, list_id, item_id):
+    def get_by_id(cls, list_id, item_id=""):
         relate_list = RelateList.get_by_id(list_id, False)
         obj = cls(relate_list)
         endpoint = obj.ENDPOINT % (list_id, item_id)
@@ -487,18 +496,18 @@ class RelateListItem(RelateObject):
                 self.fields[key] = ''
 
     def to_dict(self):
-        fieldValues = {}
+        field_values = {}
 
         for key, value in self.fields_dict.iteritems():
             if value['name'] in self.fields:
-                fieldValues[key] = [{"raw": self.fields[value['name']]}]
+                field_values[key] = [{"raw": self.fields[value['name']]}]
 
         data = {
             "listId": self.list_id,
             "accountId": self.account_id,
             "contactIds": self.contact_ids,
             "name": self.name,
-            "fieldValues": fieldValues
+            "fieldValues": field_values
         }
 
         if self.id:
@@ -519,7 +528,7 @@ class RelateListItem(RelateObject):
             data = self.put(endpoint, self.to_dict())
             self.update_from_dict(data)
         else:
-            #create
+            # create
             endpoint = self.ENDPOINT % (self.list_id, '')
             data = self.post(endpoint, self.to_dict())
             self.update_from_dict(data)
@@ -536,7 +545,7 @@ class RelateEvent(RelateObject):
     participants = []
 
     def __init__(self, subject, body, participants=None):
-        super(RelateListItem, self).__init__()
+        super().__init__()
 
         if not participants:
             participants = []
@@ -549,8 +558,9 @@ class RelateEvent(RelateObject):
 
     def add_participant(self, participant_type, value):
         if participant_type not in self.PARTICIPANT_TYPES:
-            raise Exception("Particpant type `%s` is not valid, must be one of %s" % (
-                participant_type, self.PARTICIPANT_TYPES
+            raise Exception(
+                "Particpant type `%s` is not valid, must be one of %s" % (
+                    participant_type, self.PARTICIPANT_TYPES
                 ))
 
         data = {
@@ -558,7 +568,7 @@ class RelateEvent(RelateObject):
             "value": value
         }
 
-        self.participants.append(data, value)
+        self.participants.append(data)
 
     def to_dict(self):
         data = {
